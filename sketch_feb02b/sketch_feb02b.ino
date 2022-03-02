@@ -1,33 +1,111 @@
-#include <FastLED.h>
+#define JOYSTICK_PIN_Y PA6
+#define JOYSTICK_PIN_X PA7
+#define JOYSTICK_PIN_SW PA5
 
-// How many leds in your strip?
-#define NUM_LEDS 1
+#define JOYSTICK_MEDIAN_VALUE 2900
+#define JOYSTICK_THRESHOLD 500
+#define JOYSTICK_THRESHOLD_LEFT (JOYSTICK_MEDIAN_VALUE - JOYSTICK_THRESHOLD)
+#define JOYSTICK_THRESHOLD_RIGHT (JOYSTICK_MEDIAN_VALUE + JOYSTICK_THRESHOLD)
+#define JOYSTICK_THRESHOLD_UP (JOYSTICK_MEDIAN_VALUE - JOYSTICK_THRESHOLD)
+#define JOYSTICK_THRESHOLD_DOWN (JOYSTICK_MEDIAN_VALUE + JOYSTICK_THRESHOLD)
 
-// For led chips like WS2812, which have a data line, ground, and power, you just
-// need to define DATA_PIN. For led chipsets that are SPI based (four wires - data, clock,
-// ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
-// Clock pin only needed for SPI based chipsets when not using hardware SPI
-#define DATA_PIN D7
+enum{
+    FULL_LEFT,
+    MID_LEFT,
+    FULL_RIGHT,
+    MID_RIGHT,
+    NEUTRAL,
+    FULL_UP,
+    MID_UP,
+    FULL_DOWN,
+    MID_DOWN
+};
 
-// Define the array of leds
-CRGB leds[NUM_LEDS];
+String dir_name[9] =
+{
+    " FULL_LEFT ",
+    " MID_LEFT  ",
+    " FULL_RIGHT",
+    " MID_RIGHT ",
+    " NEUTRAL   ",
+    " FULL_UP   ",
+    " MID_UP    ",
+    " FULL_DOWN ",
+    " MID_DOWN  "
+};
 
-void setup() {
-// Uncomment/edit one of the following lines for your leds arrangement.
-// ## Clockless types ##
-FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS); // GRB ordering is assumed
 
-// FastLED.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS); // GRB ordering is typical
+int y;
+int x;
+int sw;
+
+void setup()
+{
+    Serial2.begin(9600);
+}
+
+void loop()
+{
+    y = analogRead(JOYSTICK_PIN_Y);
+    x = analogRead(JOYSTICK_PIN_X);
+    sw = !digitalRead(JOYSTICK_PIN_SW);
+
+    int XDIR = joystick_get_x();
+    int YDIR = joystick_get_y();
+
+    Serial2.print("Y: " + dir_name[YDIR] + " VAL " + String(y));
+    Serial2.println("|  X: " + dir_name[XDIR] + " VAL " + String(x));
+    delay(300);
 
 }
 
-void loop() {
-// Turn the LED on, then pause
-leds[0] = CRGB::Red;
-FastLED.show();
-delay(500);
-// Now turn the LED off, then pause
-leds[0] = CRGB::Black;
-FastLED.show();
-delay(500);
+int joystick_get_x()
+{
+    if (analogRead(JOYSTICK_PIN_X) < 20)
+    {
+        return FULL_LEFT;
+    }
+
+    if (analogRead(JOYSTICK_PIN_X) > 3600)
+    {
+        return FULL_RIGHT;
+    }
+
+    if (analogRead(JOYSTICK_PIN_X) < JOYSTICK_MEDIAN_VALUE - 800)
+    {
+        return MID_LEFT;
+    }
+
+    if (analogRead(JOYSTICK_PIN_X) > JOYSTICK_MEDIAN_VALUE + 800)
+    {
+        return MID_RIGHT;
+    }
+
+    return NEUTRAL;
+}
+
+
+int joystick_get_y()
+{
+    if (analogRead(JOYSTICK_PIN_Y) < 20)
+    {
+        return FULL_UP;
+    }
+
+    if (analogRead(JOYSTICK_PIN_Y) > 3600)
+    {
+        return FULL_DOWN;
+    }
+
+    if (analogRead(JOYSTICK_PIN_Y) < JOYSTICK_MEDIAN_VALUE - 800)
+    {
+        return MID_UP;
+    }
+
+    if (analogRead(JOYSTICK_PIN_Y) > JOYSTICK_MEDIAN_VALUE + 800)
+    {
+        return MID_DOWN;
+    }
+
+    return NEUTRAL;
 }
